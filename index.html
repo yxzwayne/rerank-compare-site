@@ -68,6 +68,7 @@
                 const querySelector = document.getElementById('querySelector');
                 const localDocumentsDiv = document.getElementById('local-documents');
                 const cohereDocumentsDiv = document.getElementById('cohere-documents');
+                const queryTextDiv = document.getElementById('queryText'); // Reference to the queryText div
 
                 // Populate the dropdown with queries
                 data.forEach((item, index) => {
@@ -82,6 +83,9 @@
                     const selectedQuery = data[queryIndex];
                     localDocumentsDiv.innerHTML = '<h2>Locally Reranked Documents</h2>';
                     cohereDocumentsDiv.innerHTML = '<h2>Cohere Reranked Documents</h2>';
+
+                    // Update the queryText div with the selected query's text
+                    queryTextDiv.innerHTML = `<p>${selectedQuery.query}</p>`;
 
                     // Assuming both arrays have the same length
                     for (let i = 0; i < selectedQuery.reranked_results_local.length; i++) {
