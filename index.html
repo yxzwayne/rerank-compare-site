@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Query-Document Viewer</title>
+    <style>
+        .container {
+            display: flex;
+            width: 100%;
+            justify-content: space-around;
+
+        }
+
+        .left-column {
+            width: 22%;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .doc-column {
+            width: 35%;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .document-item {
+            margin-bottom: 20px;
+        }
+
+        .score {
+            font-weight: bold;
+        }
+
+        select {
+            max-width: 100%;
+            /* Set a maximum width */
+            padding: 10px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            /* Hide overflow text */
+            text-overflow: ellipsis;
+            white-space: normal;
+            height: auto;
+            line-height: 1.5;
+        }
+    </style>
+
+<body>
+    <div class="container">
+        <div class="left-column" id="query">
+            <h2>Queries</h2>
+            <select id="querySelector"></select> <!-- Dropdown for selecting queries -->
+            <div id="queryText"></div>
+        </div>
+        <div class="doc-column" id="local-documents">
+            <!-- the following is being overwritten by the javascript -->
+            <!-- <h2>Locally Reranked Documents</h2> -->
+        </div>
+        <div class="doc-column" id="cohere-documents">
+        </div>
+    </div>
+
+    <script>
+        fetch('rerank_results_merged.json')
+            .then(response => response.json())
+            .then(data => {
+                const querySelector = document.getElementById('querySelector');
+                const localDocumentsDiv = document.getElementById('local-documents');
+                const cohereDocumentsDiv = document.getElementById('cohere-documents');
+
+                // Populate the dropdown with queries
+                data.forEach((item, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = item.query;
+                    querySelector.appendChild(option);
+                });
+
+                // Function to display documents for selected query
+                function displayDocuments(queryIndex) {
+                    const selectedQuery = data[queryIndex];
+                    localDocumentsDiv.innerHTML = '<h2>Locally Reranked Documents</h2>';
+                    cohereDocumentsDiv.innerHTML = '<h2>Cohere Reranked Documents</h2>';
+
+                    // Assuming both arrays have the same length
+                    for (let i = 0; i < selectedQuery.reranked_results_local.length; i++) {
+                        const localRR = selectedQuery.reranked_results_local[i];
+                        const cohereRR = selectedQuery.reranked_results_cohere[i];
+
+                        // Create and append local document
+                        const localDocDiv = document.createElement('div');
+                        localDocDiv.className = 'document-item';
+                        localDocDiv.innerHTML = `<div class="score">Score: ${localRR.score}</div><div>${localRR.text}</div>`;
+                        localDocumentsDiv.appendChild(localDocDiv);
+
+                        // Create and append cohere document
+                        const cohereDocDiv = document.createElement('div');
+                        cohereDocDiv.className = 'document-item';
+                        cohereDocDiv.innerHTML = `<div class="score">Score: ${cohereRR.score}</div><div>${cohereRR.text}</div>`;
+                        cohereDocumentsDiv.appendChild(cohereDocDiv);
+                    }
+                }
+                displayDocuments(0);
+                querySelector.addEventListener('change', () => {
+                    displayDocuments(querySelector.value);
+                });
+            })
+            .catch(error => console.error('Error loading the sorted query documents:', error));
+    </script>
+</body>
+
+</html>
