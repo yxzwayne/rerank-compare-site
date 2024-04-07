@@ -98,7 +98,7 @@
                 queryTextDiv.innerHTML = `<p>${selectedQuery.query}</p>`;
 
                 for (let i = 0; i < selectedQuery.reranked_results_cohere.length; i++) {
-                    const baseRR = selectedQuery.reranked_results_cohere[i];
+                    const baseRR = selectedQuery.reranked_results_v2m3[i];
                     const gemmaRR = selectedQuery.reranked_results_gemma[i];
                     const cohereRR = selectedQuery.reranked_results_cohere[i];
 
