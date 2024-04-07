@@ -12,16 +12,16 @@
 
         }
 
-        .left-column {
-            width: 22%;
-            padding: 15px;
-            overflow-y: auto;
+        .query-column {
+            margin: 0 15vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .doc-column {
-            width: 35%;
+            width: 25%;
             padding: 15px;
-            overflow-y: auto;
         }
 
         .document-item {
@@ -29,6 +29,11 @@
         }
 
         .score {
+            font-weight: bold;
+        }
+
+        #queryText {
+            font-size: 1.2em;
             font-weight: bold;
         }
 
@@ -47,71 +52,113 @@
     </style>
 
 <body>
+    <div class="query-column">
+        <p>Select the query below to view. You can also use up and down arrow keys to switch queries</p>
+        <select id="querySelector"></select> <!-- Dropdown for selecting queries -->
+        <div id="queryText"></div>
+    </div>
     <div class="container">
-        <div class="left-column" id="query">
-            <h2>Queries</h2>
-            <select id="querySelector"></select> <!-- Dropdown for selecting queries -->
-            <div id="queryText"></div>
-        </div>
-        <div class="doc-column" id="local-documents">
+        <div class="doc-column" id="v2m3-documents">
             <!-- the following is being overwritten by the javascript -->
             <!-- <h2>Locally Reranked Documents</h2> -->
+        </div>
+        <div class="doc-column" id="gemma-documents">
         </div>
         <div class="doc-column" id="cohere-documents">
         </div>
     </div>
+</body>
 
-    <script>
-        fetch('rerank_results_merged.json')
-            .then(response => response.json())
-            .then(data => {
-                const querySelector = document.getElementById('querySelector');
-                const localDocumentsDiv = document.getElementById('local-documents');
-                const cohereDocumentsDiv = document.getElementById('cohere-documents');
-                const queryTextDiv = document.getElementById('queryText'); // Reference to the queryText div
+<script>
+    fetch('merged_results.json')
+        .then(response => response.json())
+        .then(data => {
+            const querySelector = document.getElementById('querySelector');
+            const baseDocumentsDiv = document.getElementById('v2m3-documents');
+            const gemmaDocumentsDiv = document.getElementById('gemma-documents');
+            const cohereDocumentsDiv = document.getElementById('cohere-documents');
+            const queryTextDiv = document.getElementById('queryText'); // Reference to the queryText div
 
-                // Populate the dropdown with queries
-                data.forEach((item, index) => {
-                    const option = document.createElement('option');
-                    option.value = index;
-                    option.textContent = item.query;
-                    querySelector.appendChild(option);
-                });
+            // Populate the dropdown with queries
+            data.forEach((item, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = item.query;
+                querySelector.appendChild(option);
+            });
 
-                // Function to display documents for selected query
-                function displayDocuments(queryIndex) {
-                    const selectedQuery = data[queryIndex];
-                    localDocumentsDiv.innerHTML = '<h2>Locally Reranked Documents</h2>';
-                    cohereDocumentsDiv.innerHTML = '<h2>Cohere Reranked Documents</h2>';
+            // Function to display documents for selected query
+            function displayDocuments(queryIndex) {
+                const selectedQuery = data[queryIndex];
+                baseDocumentsDiv.innerHTML = '<h2>Base Reranked Documents</h2>';
+                gemmaDocumentsDiv.innerHTML = '<h2>Gemma Reranked Documents</h2>';
+                cohereDocumentsDiv.innerHTML = '<h2>Cohere Reranked Documents</h2>';
 
-                    // Update the queryText div with the selected query's text
-                    queryTextDiv.innerHTML = `<p>${selectedQuery.query}</p>`;
+                // Update the queryText div with the selected query's text
+                queryTextDiv.innerHTML = `<p>${selectedQuery.query}</p>`;
 
-                    // Assuming both arrays have the same length
-                    for (let i = 0; i < selectedQuery.reranked_results_local.length; i++) {
-                        const localRR = selectedQuery.reranked_results_local[i];
-                        const cohereRR = selectedQuery.reranked_results_cohere[i];
+                for (let i = 0; i < selectedQuery.reranked_results_cohere.length; i++) {
+                    const baseRR = selectedQuery.reranked_results_cohere[i];
+                    const gemmaRR = selectedQuery.reranked_results_gemma[i];
+                    const cohereRR = selectedQuery.reranked_results_cohere[i];
 
-                        // Create and append local document
-                        const localDocDiv = document.createElement('div');
-                        localDocDiv.className = 'document-item';
-                        localDocDiv.innerHTML = `<div class="score">Score: ${localRR.score}</div><div>${localRR.text}</div>`;
-                        localDocumentsDiv.appendChild(localDocDiv);
+                    const baseDocDiv = document.createElement('div');
+                    baseDocDiv.className = 'document-item';
+                    baseDocDiv.innerHTML = `<div class="score">Score: ${baseRR.score}</div><div>${baseRR.text}</div>`;
+                    baseDocumentsDiv.appendChild(baseDocDiv);
 
-                        // Create and append cohere document
-                        const cohereDocDiv = document.createElement('div');
-                        cohereDocDiv.className = 'document-item';
-                        cohereDocDiv.innerHTML = `<div class="score">Score: ${cohereRR.score}</div><div>${cohereRR.text}</div>`;
-                        cohereDocumentsDiv.appendChild(cohereDocDiv);
+                    const gemmaDocDiv = document.createElement('div');
+                    gemmaDocDiv.className = 'document-item';
+                    gemmaDocDiv.innerHTML = `<div class="score">Score: ${gemmaRR.score}</div><div>${gemmaRR.text}</div>`;
+                    gemmaDocumentsDiv.appendChild(gemmaDocDiv);
+
+                    const cohereDocDiv = document.createElement('div');
+                    cohereDocDiv.className = 'document-item';
+                    cohereDocDiv.innerHTML = `<div class="score">Score: ${cohereRR.score}</div><div>${cohereRR.text}</div>`;
+                    cohereDocumentsDiv.appendChild(cohereDocDiv);
+                }
+            }
+            displayDocuments(0);
+            querySelector.addEventListener('change', () => {
+                displayDocuments(querySelector.value);
+            });
+
+            // Add keyboard navigation functionality with prevention of default arrow key behavior
+            document.addEventListener('keydown', (event) => {
+                const currentIndex = parseInt(querySelector.value);
+                let navigate = false; // Flag to indicate navigation action
+
+                if (event.key === 'ArrowUp' && currentIndex > 0) {
+                    querySelector.value = currentIndex - 1;
+                    navigate = true;
+                } else if (event.key === 'ArrowDown' && currentIndex < querySelector.options.length - 1) {
+                    querySelector.value = currentIndex + 1;
+                    navigate = true;
+                }
+
+                if (navigate) {
+                    displayDocuments(querySelector.value);
+                    event.preventDefault(); // Prevent the default scrolling behavior
+                }
+            });
+
+            // Add keyboard navigation functionality
+            document.addEventListener('keydown', (event) => {
+                const currentIndex = parseInt(querySelector.value);
+                if (event.key === 'ArrowUp') {
+                    if (currentIndex > 0) {
+                        querySelector.value = currentIndex - 1;
+                        displayDocuments(querySelector.value);
+                    }
+                } else if (event.key === 'ArrowDown') {
+                    if (currentIndex < querySelector.options.length - 1) {
+                        querySelector.value = currentIndex + 1;
+                        displayDocuments(querySelector.value);
                     }
                 }
-                displayDocuments(0);
-                querySelector.addEventListener('change', () => {
-                    displayDocuments(querySelector.value);
-                });
-            })
-            .catch(error => console.error('Error loading the sorted query documents:', error));
-    </script>
-</body>
+            });
+        })
+        .catch(error => console.error('Error loading the sorted query documents:', error));
+</script>
 
 </html>
